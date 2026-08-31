@@ -36,6 +36,18 @@ jobs:
           unzip -q health-ci.zip
           test -f health-offline-android/settings.gradle.kts
 
+      - name: Apply compile fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
+          s = p.read_text()
+          s = s.replace('setTextColor(text)', 'setTextColor(this@MainActivity.text)')
+          s = s.replace('else text)', 'else this@MainActivity.text)')
+          p.write_text(s)
+          PY
+
       - name: Run unit tests
         working-directory: health-offline-android
         run: gradle testDebugUnitTest --stacktrace
