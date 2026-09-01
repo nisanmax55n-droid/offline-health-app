@@ -1,6 +1,7 @@
 package il.co.offlinehealth
 
 import android.Manifest
+import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.pm.PackageManager
@@ -10,11 +11,10 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
-class ReminderSettingsActivity : AppCompatActivity() {
+class ReminderSettingsActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(ReminderScheduler.PREFS, Context.MODE_PRIVATE) }
     private val mealRows = mutableListOf<MealRow>()
     private lateinit var master: Switch
@@ -27,7 +27,7 @@ class ReminderSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "תזכורות אישיות"
+        setTitle("תזכורות אישיות")
         val scroll = ScrollView(this)
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
