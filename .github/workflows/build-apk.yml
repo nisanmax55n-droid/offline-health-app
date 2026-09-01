@@ -55,18 +55,22 @@ jobs:
           grep -q 'class HeartProgressView' "$SRC/PpgActivity.kt"
           grep -q 'fun guidance' "$SRC/HealthCalculations.kt"
 
-      - name: Apply targeted Kotlin source fix
+      - name: Apply targeted Kotlin source fixes
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
-          s = p.read_text()
+          main = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
+          s = main.read_text()
           old = 'else->"🥗"}\n        }\n    }\n\n    private fun addFoodDialog'
           new = 'else->"🥗"}\n        }\n\n    private fun addFoodDialog'
           if old not in s:
               raise SystemExit('expected foodEmoji extra-brace pattern not found')
-          p.write_text(s.replace(old, new, 1))
+          main.write_text(s.replace(old, new, 1))
+
+          calc = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt')
+          c = calc.read_text().replace('"טווח משקל תקין"', '"משקל תקין"')
+          calc.write_text(c)
           PY
 
       - name: Build official Israeli nutrition snapshot
