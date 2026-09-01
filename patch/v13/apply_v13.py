@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import re
 import shutil
 import xml.etree.ElementTree as ET
@@ -16,8 +17,8 @@ for name in ['ReminderScheduler.kt', 'ReminderReceiver.kt', 'ReminderSettingsAct
     shutil.copy2(patch / name, src / name)
 
 g = gradle.read_text()
-g = g.replace('versionName = "1.2.1"', 'versionName = "1.3.0"')
-g = re.sub(r'versionCode\s*=\s*(\d+)', lambda m: f'versionCode = {int(m.group(1)) + 1}', g, count=1)
+g = g.replace('versionName = "1.2.1"', 'versionName = "1.3.2"')
+g = re.sub(r'versionCode\s*=\s*(\d+)', 'versionCode = 8', g, count=1)
 gradle.write_text(g)
 
 ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
@@ -37,14 +38,9 @@ tree.write(strings, encoding='utf-8', xml_declaration=True)
 (res / 'mipmap-anydpi-v26').mkdir(parents=True, exist_ok=True)
 (res / 'values').mkdir(parents=True, exist_ok=True)
 
-(res / 'drawable/ic_efrat_foreground.xml').write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M54,10 A44,44 0,1 1,53.9 10" android:fillColor="@android:color/transparent" android:strokeColor="#D8AE5A" android:strokeWidth="3.2"/>
-    <path android:pathData="M71,23 C86,15 93,20 91,34 C89,46 78,50 67,47 C75,39 80,31 82,23 C78,30 72,36 65,41 C64,32 66,27 71,23Z" android:fillColor="#78A942"/>
-    <path android:pathData="M34,76 L49,30 L64,76 M40,59 L58,59" android:fillColor="@android:color/transparent" android:strokeColor="#F1D28A" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-    <path android:pathData="M59,76 L59,33 L71,33 C82,33 85,39 85,45 C85,52 80,56 71,56 L59,56 M71,56 L86,76" android:fillColor="@android:color/transparent" android:strokeColor="#D9AC55" android:strokeWidth="4.5" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-    <path android:pathData="M27,73 C38,59 43,49 47,39 C39,45 32,56 27,73Z" android:fillColor="#2F7A4B"/>
-</vector>''')
+(res / 'drawable/ic_efrat_foreground.png').write_bytes(
+    base64.b64decode((patch / 'ic_efrat_foreground.png.b64').read_text())
+)
 
 (res / 'drawable/ic_efrat_logo.xml').write_text('''<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item><shape android:shape="rectangle"><solid android:color="#073D34"/><corners android:radius="24dp"/></shape></item>
@@ -99,7 +95,7 @@ if not has_component('receiver', '.ReminderBootReceiver'):
 mt.write(manifest, encoding='utf-8', xml_declaration=True)
 
 s = main.read_text()
-s = s.replace('val body=page("הגדרות ופרטיות","גרסה 1.2.0 · Offline","⚙️")', 'val body=page("הגדרות ופרטיות","גרסה 1.3.0 · Offline","⚙️")', 1)
+s = s.replace('val body=page("הגדרות ופרטיות","גרסה 1.2.0 · Offline","⚙️")', 'val body=page("הגדרות ופרטיות","גרסה 1.3.2 · Offline","⚙️")', 1)
 anchor = 'body.addView(actionButton("⚡ עריכת פעולות מהירות"){showQuickActionsSettings()})'
 insert = anchor + '\n        body.addView(actionButton("🔔 תזכורות לאוכל ולשתייה"){startActivity(Intent(this,ReminderSettingsActivity::class.java))})'
 if anchor not in s:
@@ -112,4 +108,4 @@ if old_delete in s:
     s = s.replace(old_delete, new_delete, 1)
 main.write_text(s)
 
-print('Applied OfflineHealth 1.3.0 branding + reminder integration')
+print('Applied OfflineHealth 1.3.2 branding + reminder integration')
