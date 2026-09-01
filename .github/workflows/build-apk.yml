@@ -54,18 +54,19 @@ jobs:
       - name: Apply 1.2.1 goal engine and BMI dashboard
         run: python3 patch/v121/apply_v121.py
 
-      - name: Inspect settings block
-        shell: bash
-        run: |
-          grep -n -A120 -B10 'fun showSettings\|private fun showSettings' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt || true
+      - name: Apply 1.3.0 branding and reminders
+        run: python3 patch/v13/apply_v13.py
 
-      - name: Verify source patch
+      - name: Verify 1.3 source patch
         shell: bash
         run: |
-          grep -q 'versionName = "1.2.1"' health-offline-android/app/build.gradle.kts
-          grep -q 'fun goalFromWeights' health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt
-          grep -q 'איך חושב היעד' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
-          grep -q 'sectionTitle(body,"BMI"' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
+          grep -q 'versionName = "1.3.0"' health-offline-android/app/build.gradle.kts
+          grep -q 'תזכורות לאוכל ולשתייה' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
+          grep -q 'class ReminderSettingsActivity' health-offline-android/app/src/main/java/il/co/offlinehealth/ReminderSettingsActivity.kt
+          grep -q 'class ReminderReceiver' health-offline-android/app/src/main/java/il/co/offlinehealth/ReminderReceiver.kt
+          grep -q 'RECEIVE_BOOT_COMPLETED' health-offline-android/app/src/main/AndroidManifest.xml
+          grep -q 'אפרת רביבו' health-offline-android/app/src/main/res/values/strings.xml
+          test -s health-offline-android/app/src/main/res/drawable/ic_efrat_foreground.xml
 
       - name: Build official Israeli nutrition snapshot
         working-directory: health-offline-android
@@ -91,11 +92,12 @@ jobs:
           test -s "$APK"
           sha256sum "$APK"
           unzip -l "$APK" | grep 'assets/israel_foods.csv'
+          unzip -l "$APK" | grep 'res/' >/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: OfflineHealth-1.2.1-debug-apk
+          name: EfratRavivo-Nutrition-1.3.0-apk
           path: health-offline-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
