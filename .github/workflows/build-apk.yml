@@ -36,34 +36,36 @@ jobs:
           unzip -q health-ci.zip
           test -f health-offline-android/settings.gradle.kts
 
-      - name: Apply 1.1 redesigned source
+      - name: Apply 1.2 source
         shell: bash
         run: |
-          mkdir -p health-offline-android/keystore
-          cat patch/MainActivity.part0.b64 patch/MainActivity.part1.b64 patch/MainActivity.part2a.b64 patch/MainActivity.part2b.b64 patch/MainActivity.part2c.b64 patch/MainActivity.part2d.b64 patch/MainActivity.part3.b64 patch/MainActivity.part4.b64 | base64 -d > /tmp/MainActivity.kt.gz
-          echo "d2782429e726f801e418311659d146cc26bcda78a7818f1d4abd787c3ee86295  /tmp/MainActivity.kt.gz" | sha256sum -c -
-          gzip -t /tmp/MainActivity.kt.gz
-          gunzip -c /tmp/MainActivity.kt.gz > health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
-          base64 -d patch/HealthDb.kt.gz.b64 | gunzip > health-offline-android/app/src/main/java/il/co/offlinehealth/HealthDb.kt
-          base64 -d patch/build.gradle.kts.gz.b64 | gunzip > health-offline-android/app/build.gradle.kts
-          base64 -d patch/offlinehealth-dev.jks.b64 > health-offline-android/keystore/offlinehealth-dev.jks
+          set -euo pipefail
+          ROOT=health-offline-android
+          SRC="$ROOT/app/src/main/java/il/co/offlinehealth"
+          mkdir -p "$ROOT/keystore" "$ROOT/scripts" "$ROOT/app/src/main/assets"
 
-      - name: Apply Kotlin compile fixes
-        shell: bash
+          cat patch/v12/MainActivity.part0.b64 patch/v12/MainActivity.part1.b64 patch/v12/MainActivity.part2.b64 patch/v12/MainActivity.part3.b64 patch/v12/MainActivity.part4.b64 | base64 -d | gunzip > "$SRC/MainActivity.kt"
+          cp patch/v12/HealthDb.kt "$SRC/HealthDb.kt"
+          base64 -d patch/v12/PpgActivity.kt.gz.b64 | gunzip > "$SRC/PpgActivity.kt"
+          base64 -d patch/v12/HealthCalculations.kt.gz.b64 | gunzip > "$SRC/HealthCalculations.kt"
+          base64 -d patch/v12/build.gradle.kts.gz.b64 | gunzip > "$ROOT/app/build.gradle.kts"
+          base64 -d patch/v12/build_israel_catalog.py.gz.b64 | gunzip > "$ROOT/scripts/build_israel_catalog.py"
+          base64 -d patch/offlinehealth-dev.jks.b64 > "$ROOT/keystore/offlinehealth-dev.jks"
+
+          grep -q 'versionName = "1.2.0"' "$ROOT/app/build.gradle.kts"
+          grep -q 'DB_VERSION = 2' "$SRC/HealthDb.kt"
+          grep -q 'class HeartProgressView' "$SRC/PpgActivity.kt"
+          grep -q 'fun guidance' "$SRC/HealthCalculations.kt"
+
+      - name: Build official Israeli nutrition snapshot
+        working-directory: health-offline-android
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
-          s = p.read_text()
-          s = s.replace('import android.graphics.drawable.GradientDrawable', 'import android.graphics.drawable.GradientDrawable\nimport android.graphics.drawable.ColorDrawable')
-          s = s.replace('singleLine=true', 'isSingleLine=true')
-          old = 'else->"🥗"}\n        }\n    }\n\n    private fun addFoodDialog'
-          new = 'else->"🥗"}\n        }\n\n    private fun addFoodDialog'
-          if old not in s:
-              raise SystemExit('foodEmoji brace pattern not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
-          PY
+          python3 scripts/build_israel_catalog.py
+          test -s app/src/main/assets/israel_foods.csv
+          rows=$(($(wc -l < app/src/main/assets/israel_foods.csv)-1))
+          echo "National nutrition rows: $rows"
+          test "$rows" -ge 4000
+          head -2 app/src/main/assets/israel_foods.csv
 
       - name: Run unit tests
         working-directory: health-offline-android
@@ -73,16 +75,19 @@ jobs:
         working-directory: health-offline-android
         run: gradle assembleDebug --stacktrace
 
-      - name: Verify APK
+      - name: Verify APK and embedded data
         shell: bash
         run: |
-          test -s health-offline-android/app/build/outputs/apk/debug/app-debug.apk
-          sha256sum health-offline-android/app/build/outputs/apk/debug/app-debug.apk
+          APK=health-offline-android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          sha256sum "$APK"
+          unzip -l "$APK" | grep 'assets/israel_foods.csv'
+          unzip -p "$APK" assets/israel_foods.csv | wc -l
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: OfflineHealth-1.1.0-debug-apk
+          name: OfflineHealth-1.2.0-debug-apk
           path: health-offline-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
