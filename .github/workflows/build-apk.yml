@@ -43,7 +43,6 @@ jobs:
           ROOT=health-offline-android
           SRC="$ROOT/app/src/main/java/il/co/offlinehealth"
           mkdir -p "$ROOT/keystore" "$ROOT/scripts" "$ROOT/app/src/main/assets"
-
           cat patch/v12/MainActivity.part0.b64 patch/v12/MainActivity.part1.b64 patch/v12/MainActivity.part2.b64 patch/v12/MainActivity.part3.b64 patch/v12/MainActivity.part4.b64 | base64 -d | gunzip > "$SRC/MainActivity.kt"
           cp patch/v12/HealthDb.kt "$SRC/HealthDb.kt"
           base64 -d patch/v12/PpgActivity.kt.gz.b64 | gunzip > "$SRC/PpgActivity.kt"
@@ -51,11 +50,24 @@ jobs:
           base64 -d patch/v12/build.gradle.kts.gz.b64 | gunzip > "$ROOT/app/build.gradle.kts"
           base64 -d patch/v12/build_israel_catalog.py.gz.b64 | gunzip > "$ROOT/scripts/build_israel_catalog.py"
           base64 -d patch/offlinehealth-dev.jks.b64 > "$ROOT/keystore/offlinehealth-dev.jks"
-
           grep -q 'versionName = "1.2.0"' "$ROOT/app/build.gradle.kts"
           grep -q 'DB_VERSION = 2' "$SRC/HealthDb.kt"
           grep -q 'class HeartProgressView' "$SRC/PpgActivity.kt"
           grep -q 'fun guidance' "$SRC/HealthCalculations.kt"
+
+      - name: Apply targeted Kotlin source fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
+          s = p.read_text()
+          old = 'else->"🥗"}\n        }\n    }\n\n    private fun addFoodDialog'
+          new = 'else->"🥗"}\n        }\n\n    private fun addFoodDialog'
+          if old not in s:
+              raise SystemExit('expected foodEmoji extra-brace pattern not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
 
       - name: Build official Israeli nutrition snapshot
         working-directory: health-offline-android
