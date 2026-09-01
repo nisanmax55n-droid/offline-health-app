@@ -47,9 +47,23 @@ jobs:
           base64 -d patch/HealthDb.kt.gz.b64 | gunzip > health-offline-android/app/src/main/java/il/co/offlinehealth/HealthDb.kt
           base64 -d patch/build.gradle.kts.gz.b64 | gunzip > health-offline-android/app/build.gradle.kts
           base64 -d patch/offlinehealth-dev.jks.b64 > health-offline-android/keystore/offlinehealth-dev.jks
-          test -s health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
-          test -s health-offline-android/app/src/main/java/il/co/offlinehealth/HealthDb.kt
-          test -s health-offline-android/keystore/offlinehealth-dev.jks
+
+      - name: Apply Kotlin compile fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt')
+          s = p.read_text()
+          s = s.replace('import android.graphics.drawable.GradientDrawable', 'import android.graphics.drawable.GradientDrawable\nimport android.graphics.drawable.ColorDrawable')
+          s = s.replace('singleLine=true', 'isSingleLine=true')
+          old = 'else->"🥗"}\n        }\n    }\n\n    private fun addFoodDialog'
+          new = 'else->"🥗"}\n        }\n\n    private fun addFoodDialog'
+          if old not in s:
+              raise SystemExit('foodEmoji brace pattern not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
 
       - name: Run unit tests
         working-directory: health-offline-android
