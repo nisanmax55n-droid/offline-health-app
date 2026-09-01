@@ -38,12 +38,12 @@ class ReminderSettingsActivity : AppCompatActivity() {
         scroll.addView(body)
 
         body.addView(titleText("🔔 תזכורות אישיות"))
-        body.addView(subText("בחרי מתי האפליקציה תזכיר לך לאכול ולשתות. ההתראות מקומיות ועובדות גם בלי אינטרנט."))
+        body.addView(subText("בחרו מתי אפרת רביבו תזכיר לאכול ולשתות. ההתראות מקומיות, עם צליל ורטט, ועובדות גם בלי אינטרנט."))
 
         master = Switch(this).apply {
             text = "הפעלת תזכורות"
             textSize = 18f
-            isChecked = prefs.getBoolean("master_enabled", true)
+            isChecked = prefs.getBoolean("master_enabled", false)
             gravity = Gravity.RIGHT
             setPadding(0, dp(14), 0, dp(14))
         }
@@ -62,7 +62,7 @@ class ReminderSettingsActivity : AppCompatActivity() {
             val sw = Switch(this).apply {
                 text = label
                 textSize = 16f
-                isChecked = prefs.getBoolean(item.enabledKey, item.type != "snack")
+                isChecked = prefs.getBoolean(item.enabledKey, false)
                 gravity = Gravity.RIGHT
             }
             val b = Button(this).apply {
@@ -80,12 +80,11 @@ class ReminderSettingsActivity : AppCompatActivity() {
         waterEnabled = Switch(this).apply {
             text = "💧 תזכורות מים"
             textSize = 16f
-            isChecked = prefs.getBoolean("water_enabled", true)
+            isChecked = prefs.getBoolean("water_enabled", false)
             gravity = Gravity.RIGHT
         }
         body.addView(waterEnabled)
-        val intervalLabel = TextView(this).apply { text = "מרווח בין תזכורות"; textSize=15f; gravity=Gravity.RIGHT; setPadding(0,dp(12),0,dp(6)) }
-        body.addView(intervalLabel)
+        body.addView(TextView(this).apply { text = "מרווח בין תזכורות"; textSize=15f; gravity=Gravity.RIGHT; setPadding(0,dp(12),0,dp(6)) })
         waterInterval = Spinner(this)
         val intervalValues = listOf("כל 30 דקות","כל 60 דקות","כל 90 דקות","כל 120 דקות")
         waterInterval.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, intervalValues)
@@ -119,12 +118,25 @@ class ReminderSettingsActivity : AppCompatActivity() {
         }
         body.addView(save, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT).apply{setMargins(0,dp(24),0,0)})
 
-        body.addView(subText("הערה: Android עשוי להזיז תזכורת בכמה דקות כדי לחסוך בסוללה. אין צורך בחיבור לאינטרנט."))
+        val test = Button(this).apply {
+            text = "🔔 בדיקת התראה עכשיו"
+            isAllCaps = false
+            textSize = 16f
+            setOnClickListener {
+                requestNotificationPermissionIfNeeded()
+                if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(this@ReminderSettingsActivity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                    ReminderReceiver.sendTest(this@ReminderSettingsActivity)
+                } else Toast.makeText(this@ReminderSettingsActivity,"יש לאשר התראות ואז ללחוץ שוב על הבדיקה",Toast.LENGTH_LONG).show()
+            }
+        }
+        body.addView(test, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT).apply{setMargins(0,dp(10),0,0)})
+
+        body.addView(subText("Android עשוי להזיז תזכורת בכמה דקות כדי לחסוך בסוללה. אין צורך בחיבור לאינטרנט. התזכורות נשמרות במכשיר ונטענות מחדש אחרי אתחול."))
         setContentView(scroll)
     }
 
     private fun saveAll() {
-        val e = prefs.edit().putBoolean("master_enabled", master.isChecked).putBoolean("water_enabled", waterEnabled.isChecked)
+        val e = prefs.edit().putBoolean("configured", true).putBoolean("master_enabled", master.isChecked).putBoolean("water_enabled", waterEnabled.isChecked)
         mealRows.forEach { e.putBoolean(it.reminder.enabledKey, it.enabled.isChecked) }
         val mins = when(waterInterval.selectedItemPosition){0->30;1->60;2->90;else->120}
         e.putInt("water_interval", mins).apply()
