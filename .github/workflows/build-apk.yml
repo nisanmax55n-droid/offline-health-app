@@ -54,6 +54,11 @@ jobs:
       - name: Apply 1.2.1 goal engine and BMI dashboard
         run: python3 patch/v121/apply_v121.py
 
+      - name: Inspect settings block
+        shell: bash
+        run: |
+          grep -n -A120 -B10 'fun showSettings\|private fun showSettings' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt || true
+
       - name: Verify source patch
         shell: bash
         run: |
