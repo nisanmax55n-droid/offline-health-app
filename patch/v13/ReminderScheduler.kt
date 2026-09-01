@@ -19,18 +19,19 @@ object ReminderScheduler {
         DailyReminder("snack", "snack_enabled", "snack_hour", "snack_min", 16, 30)
     )
 
+    fun isConfigured(context: Context): Boolean = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("configured", false)
+
     fun scheduleAll(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val master = prefs.getBoolean("master_enabled", true)
-        if (!master) {
+        if (!prefs.getBoolean("configured", false) || !prefs.getBoolean("master_enabled", false)) {
             cancelAll(context)
             return
         }
         meals.forEach { item ->
-            if (prefs.getBoolean(item.enabledKey, item.type != "snack")) scheduleDaily(context, item)
+            if (prefs.getBoolean(item.enabledKey, false)) scheduleDaily(context, item)
             else cancel(context, item.type)
         }
-        if (prefs.getBoolean("water_enabled", true)) scheduleNextWater(context, fromNow = true)
+        if (prefs.getBoolean("water_enabled", false)) scheduleNextWater(context)
         else cancel(context, "water")
     }
 
@@ -49,9 +50,9 @@ object ReminderScheduler {
         setAlarm(context, item.type, trigger.timeInMillis)
     }
 
-    fun scheduleNextWater(context: Context, fromNow: Boolean) {
+    fun scheduleNextWater(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("master_enabled", true) || !prefs.getBoolean("water_enabled", true)) {
+        if (!prefs.getBoolean("configured", false) || !prefs.getBoolean("master_enabled", false) || !prefs.getBoolean("water_enabled", false)) {
             cancel(context, "water")
             return
         }
@@ -61,9 +62,7 @@ object ReminderScheduler {
         val endHour = prefs.getInt("water_end_hour", 22)
         val endMinute = prefs.getInt("water_end_min", 0)
         val now = Calendar.getInstance()
-        val candidate = (now.clone() as Calendar).apply {
-            if (fromNow) add(Calendar.MINUTE, intervalMin) else add(Calendar.MINUTE, intervalMin)
-        }
+        val candidate = (now.clone() as Calendar).apply { add(Calendar.MINUTE, intervalMin) }
         val startToday = (candidate.clone() as Calendar).apply {
             set(Calendar.HOUR_OF_DAY, startHour); set(Calendar.MINUTE, startMinute); set(Calendar.SECOND,0); set(Calendar.MILLISECOND,0)
         }
@@ -79,7 +78,7 @@ object ReminderScheduler {
     }
 
     fun rescheduleAfterFire(context: Context, type: String) {
-        if (type == "water") scheduleNextWater(context, fromNow = false)
+        if (type == "water") scheduleNextWater(context)
         else meals.firstOrNull { it.type == type }?.let { scheduleDaily(context, it) }
     }
 
