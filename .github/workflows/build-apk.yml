@@ -73,13 +73,17 @@ jobs:
           calc.write_text(c)
           PY
 
-      - name: Inspect goal and dashboard logic
+      - name: Inspect exact logic blocks
         shell: bash
         run: |
-          echo '--- HealthCalculations ---'
-          grep -n -E 'calorie|target|goal|guidance|protein|bmi|BMR|tdee|weight' health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt || true
-          echo '--- MainActivity relevant snippets ---'
-          grep -n -E 'showHome|Dashboard|BMI|bmi|קלור|יעד|מטרה|goal|profile|quick' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt | head -n 180 || true
+          echo '--- CALC 23-62 ---'
+          sed -n '23,62p' health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt
+          echo '--- CALC 95-160 ---'
+          sed -n '95,160p' health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt
+          echo '--- DASHBOARD 128-170 ---'
+          sed -n '128,170p' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
+          echo '--- BMI VIEW 339-350 ---'
+          sed -n '339,350p' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
 
       - name: Build official Israeli nutrition snapshot
         working-directory: health-offline-android
@@ -89,7 +93,6 @@ jobs:
           rows=$(($(wc -l < app/src/main/assets/israel_foods.csv)-1))
           echo "National nutrition rows: $rows"
           test "$rows" -ge 4000
-          head -2 app/src/main/assets/israel_foods.csv
 
       - name: Run unit tests
         working-directory: health-offline-android
@@ -106,7 +109,6 @@ jobs:
           test -s "$APK"
           sha256sum "$APK"
           unzip -l "$APK" | grep 'assets/israel_foods.csv'
-          unzip -p "$APK" assets/israel_foods.csv | wc -l
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
