@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p health-offline-android/keystore
-          base64 -d patch/MainActivity.kt.gz.b64 | gunzip > health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
+          cat patch/MainActivity.part0.b64 patch/MainActivity.part1.b64 patch/MainActivity.part2.b64 patch/MainActivity.part3.b64 patch/MainActivity.part4.b64 | base64 -d | gunzip > health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
           base64 -d patch/HealthDb.kt.gz.b64 | gunzip > health-offline-android/app/src/main/java/il/co/offlinehealth/HealthDb.kt
           base64 -d patch/build.gradle.kts.gz.b64 | gunzip > health-offline-android/app/build.gradle.kts
           base64 -d patch/offlinehealth-dev.jks.b64 > health-offline-android/keystore/offlinehealth-dev.jks
