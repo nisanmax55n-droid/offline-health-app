@@ -73,6 +73,14 @@ jobs:
           calc.write_text(c)
           PY
 
+      - name: Inspect goal and dashboard logic
+        shell: bash
+        run: |
+          echo '--- HealthCalculations ---'
+          grep -n -E 'calorie|target|goal|guidance|protein|bmi|BMR|tdee|weight' health-offline-android/app/src/main/java/il/co/offlinehealth/HealthCalculations.kt || true
+          echo '--- MainActivity relevant snippets ---'
+          grep -n -E 'showHome|Dashboard|BMI|bmi|קלור|יעד|מטרה|goal|profile|quick' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt | head -n 180 || true
+
       - name: Build official Israeli nutrition snapshot
         working-directory: health-offline-android
         run: |
