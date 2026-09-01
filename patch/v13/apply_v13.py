@@ -12,17 +12,14 @@ manifest = root / 'app/src/main/AndroidManifest.xml'
 strings = res / 'values/strings.xml'
 patch = Path('patch/v13')
 
-# Copy reminder implementation into the actual Android source tree.
 for name in ['ReminderScheduler.kt', 'ReminderReceiver.kt', 'ReminderSettingsActivity.kt']:
     shutil.copy2(patch / name, src / name)
 
-# Upgrade version while preserving signing setup.
 g = gradle.read_text()
 g = g.replace('versionName = "1.2.1"', 'versionName = "1.3.0"')
 g = re.sub(r'versionCode\s*=\s*(\d+)', lambda m: f'versionCode = {int(m.group(1)) + 1}', g, count=1)
 gradle.write_text(g)
 
-# App name.
 ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
 tree = ET.parse(strings)
 r = tree.getroot()
@@ -36,7 +33,6 @@ if app_name is None:
 app_name.text = 'אפרת רביבו – ניהול תזונה אישית'
 tree.write(strings, encoding='utf-8', xml_declaration=True)
 
-# Premium deep-green / gold launcher mark. Android 8+ uses the adaptive icon below.
 (res / 'drawable').mkdir(parents=True, exist_ok=True)
 (res / 'mipmap-anydpi-v26').mkdir(parents=True, exist_ok=True)
 (res / 'values').mkdir(parents=True, exist_ok=True)
@@ -74,7 +70,6 @@ if not found:
     ET.SubElement(colors_root, 'color', {'name':'efrat_icon_bg'}).text = '#073D34'
 colors_tree.write(res / 'values/colors.xml', encoding='utf-8', xml_declaration=True)
 
-# Manifest: app brand, notification permission, boot restore, activity and receivers.
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 mt = ET.parse(manifest)
 mr = mt.getroot()
@@ -96,14 +91,13 @@ if not has_component('activity', '.ReminderSettingsActivity'):
     ET.SubElement(application, 'activity', {ANDROID+'name':'.ReminderSettingsActivity', ANDROID+'exported':'false', ANDROID+'label':'תזכורות אישיות'})
 if not has_component('receiver', '.ReminderReceiver'):
     ET.SubElement(application, 'receiver', {ANDROID+'name':'.ReminderReceiver', ANDROID+'exported':'false'})
-if not has_component('receiver', '.BootReceiver'):
-    boot = ET.SubElement(application, 'receiver', {ANDROID+'name':'.BootReceiver', ANDROID+'enabled':'true', ANDROID+'exported':'true'})
+if not has_component('receiver', '.ReminderBootReceiver'):
+    boot = ET.SubElement(application, 'receiver', {ANDROID+'name':'.ReminderBootReceiver', ANDROID+'enabled':'true', ANDROID+'exported':'true'})
     filt = ET.SubElement(boot, 'intent-filter')
     ET.SubElement(filt, 'action', {ANDROID+'name':'android.intent.action.BOOT_COMPLETED'})
     ET.SubElement(filt, 'action', {ANDROID+'name':'android.intent.action.MY_PACKAGE_REPLACED'})
 mt.write(manifest, encoding='utf-8', xml_declaration=True)
 
-# Integrate reminders into Settings and update visible branding/version.
 s = main.read_text()
 s = s.replace('val body=page("הגדרות ופרטיות","גרסה 1.2.0 · Offline","⚙️")', 'val body=page("הגדרות ופרטיות","גרסה 1.3.0 · Offline","⚙️")', 1)
 anchor = 'body.addView(actionButton("⚡ עריכת פעולות מהירות"){showQuickActionsSettings()})'
@@ -112,7 +106,6 @@ if anchor not in s:
     raise SystemExit('settings quick actions anchor not found')
 s = s.replace(anchor, insert, 1)
 s = s.replace('"ברוכים הבאים לבריאות שלי"', '"ברוכים הבאים לאפרת רביבו – ניהול תזונה אישית"')
-# Keep local-data wipe complete, including scheduled reminder state.
 old_delete = 'private fun deleteAllLocalData(){db.close();deleteDatabase(HealthDb.DB_NAME);getSharedPreferences("steps",MODE_PRIVATE).edit().clear().apply();getSharedPreferences("ui_prefs",MODE_PRIVATE).edit().clear().apply();db=HealthDb(this);showOnboarding()}'
 new_delete = 'private fun deleteAllLocalData(){ReminderScheduler.cancelAll(this);db.close();deleteDatabase(HealthDb.DB_NAME);getSharedPreferences("steps",MODE_PRIVATE).edit().clear().apply();getSharedPreferences("ui_prefs",MODE_PRIVATE).edit().clear().apply();getSharedPreferences(ReminderScheduler.PREFS,MODE_PRIVATE).edit().clear().apply();db=HealthDb(this);showOnboarding()}'
 if old_delete in s:
