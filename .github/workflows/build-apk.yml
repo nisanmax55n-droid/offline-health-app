@@ -57,10 +57,15 @@ jobs:
       - name: Apply 1.3.2 branding and reminders
         run: python3 patch/v13/apply_v13.py
 
+      - name: Apply 1.4.0 premium ER redesign
+        run: python3 patch/v14/apply_v14.py
+
       - name: Verify 1.3 source patch
         shell: bash
         run: |
-          grep -q 'versionName = "1.3.2"' health-offline-android/app/build.gradle.kts
+          grep -q 'versionName = "1.4.0"' health-offline-android/app/build.gradle.kts
+          grep -q 'private fun premium' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
+          grep -q 'פרופיל ויעדים' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
           grep -q 'תזכורות לאוכל ולשתייה' health-offline-android/app/src/main/java/il/co/offlinehealth/MainActivity.kt
           grep -q 'class ReminderSettingsActivity' health-offline-android/app/src/main/java/il/co/offlinehealth/ReminderSettingsActivity.kt
           grep -q 'class ReminderReceiver' health-offline-android/app/src/main/java/il/co/offlinehealth/ReminderReceiver.kt
@@ -97,7 +102,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: EfratRavivo-Nutrition-1.3.2-apk
+          name: EfratRavivo-Nutrition-1.4.0-apk
           path: health-offline-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
